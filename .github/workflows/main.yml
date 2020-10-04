@@ -1,0 +1,24 @@
+# This is a basic workflow to help you get started with Actions
+name: Manually trigger workflow
+
+# Controls when the action will run. Triggers the workflow on push or pull request
+# events but only for the main branch
+on:
+  repository_dispatch:
+    types: [version-release]
+    
+jobs:
+    auto-pull-request:
+      name: PullRequestAction
+      runs-on: ubuntu-latest
+      steps:
+        - name: pull-request-action
+          uses: vsoch/pull-request-action@1.0.6
+          env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            BRANCH_PREFIX: "release-/"
+            PULL_REQUEST_FROM_BRANCH: "release-v111"
+            PULL_REQUEST_BRANCH: master
+            PULL_REQUEST_TITLE: "Push Helm chart package for new version release"
+            PULL_REQUEST_BODY: "PR for pushing new Helm Chart"
+            PULL_REQUEST_ASSIGNEES: sigalsax

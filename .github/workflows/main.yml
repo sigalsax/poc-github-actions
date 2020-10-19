@@ -1,24 +1,36 @@
-# This is a basic workflow to help you get started with Actions
+# This is a workflow packages a Helm chart and creates PR 
 name: Manually trigger workflow
 
 # Controls when the action will run. Triggers the workflow on push or pull request
 # events but only for the main branch
 on:
   repository_dispatch:
-    types: [version-release]
-    
+    types: [helm-version-release]
+
 jobs:
     auto-pull-request:
-      name: PullRequestAction
+      name: Package and create PR for Helm chart version bump
       runs-on: ubuntu-latest
       steps:
-        - name: pull-request-action
-          uses: vsoch/pull-request-action@1.0.6
-          env:
-            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-            BRANCH_PREFIX: "release-/"
-            PULL_REQUEST_FROM_BRANCH: "release-v111"
-            PULL_REQUEST_BRANCH: master
-            PULL_REQUEST_TITLE: "Push Helm chart package for new version release"
-            PULL_REQUEST_BODY: "PR for pushing new Helm Chart"
-            PULL_REQUEST_ASSIGNEES: sigalsax
+        - uses: actions/checkout@v2
+        - name: Package and commit Helm chart
+          run: |
+            git clone https://github.com/${{ github.event.client_payload.repository_org }}/${{ github.event.client_payload.repository_name }}.git
+            helm package ${{ github.event.client_payload.helm_package_path }}
+            rm -r ${{ github.event.client_payload.repository_name }}
+            helm_chart_name=$(echo ${{ github.event.client_payload.helm_package_path }} | rev | cut -d'/' -f 1 | rev)
+
+            git config --global user.name "sigalsax"
+            git config --global user.email "ssax18@gmail.com"
+            git add $helm_chart_name-${{ github.event.client_payload.version }}.tgz
+            git commit -m "Push Helm chart with new version release ${{ github.event.client_payload.version }} for ${{ github.event.client_payload.repository_name }}"
+
+        - name: Create PR
+          uses: peter-evans/create-pull-request@v3
+          with:
+            token: ${{ secrets.GITHUB_TOKEN }}
+            title: Pushed updated version of the ${{ github.event.client_payload.repository_name }} Helm chart
+            assignees: sigalsax
+            branch: push-helm-chart
+            delete-branch: true
+            draft: false

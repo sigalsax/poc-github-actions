@@ -5,19 +5,41 @@ name: Manually trigger workflow
 # events but only for the main branch
 on:
   repository_dispatch:
-    types: [version-release]
+    types: [helm-version-release]
     
 jobs:
     auto-pull-request:
-      name: PullRequestAction
+      name: Package and push Helm chart
       runs-on: ubuntu-latest
       steps:
-        - name: pull-request-action
+        - uses: actions/checkout@v2
+
+        - name: Checkout branch
+          uses: peterjgrainger/action-create-branch@v2.0.1
+          env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          with:
+            branch: 'release-branch-6'
+
+        - name: Verify checkout repo
+          run: |
+            echo $(git branch)
+            echo $(ls)
+        
+        - name: Create commits
+          run: |
+            echo sigal > sig.txt
+            git config  --global user.name "sigalsax"
+            git config  --global user.email "ssax18@gmail.com"
+            git add sig.txt
+            git commit -m "Test commit"
+            git branch
+
+        - name: Open PR with packaged Helm chart
           uses: vsoch/pull-request-action@1.0.6
           env:
             GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-            BRANCH_PREFIX: "release-/"
-            PULL_REQUEST_FROM_BRANCH: "release-v111"
+            PULL_REQUEST_FROM_BRANCH: "release-branch-6"
             PULL_REQUEST_BRANCH: master
             PULL_REQUEST_TITLE: "Push Helm chart package for new version release"
             PULL_REQUEST_BODY: "PR for pushing new Helm Chart"

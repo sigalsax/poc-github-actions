@@ -5,20 +5,26 @@ name: Manually trigger workflow
 # events but only for the main branch
 on:
   repository_dispatch:
-    types: [version-release]
+    types: [helm-version-release]
     
 jobs:
     auto-pull-request:
-      name: PullRequestAction
+      name: Package and push Helm chart
       runs-on: ubuntu-latest
       steps:
-        - name: pull-request-action
-          uses: vsoch/pull-request-action@1.0.6
-          env:
-            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-            BRANCH_PREFIX: "release-/"
-            PULL_REQUEST_FROM_BRANCH: "release-v111"
-            PULL_REQUEST_BRANCH: master
-            PULL_REQUEST_TITLE: "Push Helm chart package for new version release"
-            PULL_REQUEST_BODY: "PR for pushing new Helm Chart"
-            PULL_REQUEST_ASSIGNEES: sigalsax
+        - uses: actions/checkout@v2
+        - name: Package and commit Helm chart
+          run: |
+            git clone https://github.com/cyberark/secrets-provider-for-k8s.git
+            helm package secrets-provider-for-k8s/helm/secrets-provider
+            git config  --global user.name "sigalsax"
+            git config  --global user.email "ssax18@gmail.com"
+
+        - name: Create PR
+          id: cpr
+          uses: peter-evans/create-pull-request@v3
+          with:
+            token: ${{ secrets.GITHUB_TOKEN }}
+            committer: Sigal Sax <ssax18@gmail.com>
+            branch: example-patches
+            draft: false
